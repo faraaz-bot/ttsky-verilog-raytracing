@@ -48,30 +48,44 @@ module renderer_pipelined (
     wire signed [15:0] ray_dy = screen_y >>> 2;
     wire signed [15:0] ray_dz = 16'h0100;  // 1.0 forward
     
-    // Point along ray (simplified - just use screen position projected)
-    wire signed [15:0] px = ray_dx;
-    wire signed [15:0] py = ray_dy;
-    wire signed [15:0] pz = 16'h0000;  // At origin
+    // Simple ray marching - march forward from camera
+    // Start at camera, march along ray direction
+    wire signed [15:0] march_dist = 16'h0500;  // 5.0 units forward
+    wire signed [15:0] px = ray_ox + ((ray_dx * march_dist) >>> 8);
+    wire signed [15:0] py = ray_oy + ((ray_dy * march_dist) >>> 8);
+    wire signed [15:0] pz = ray_oz + ((ray_dz * march_dist) >>> 8);
     
     // Combinatorial SDF evaluation
-    wire hit_comb;
-    wire signed [15:0] light_comb;
+    wire hit_torus, hit_sphere;
+    wire signed [15:0] light_torus, light_sphere;
     
-    // Select SDF based on scene
-    generate
-        if (1) begin : gen_torus
-            sdf_torus_comb torus (
-                .px(px),
-                .py(py),
-                .pz(pz),
-                .lx(light_x),
-                .ly(light_y),
-                .lz(light_z),
-                .hit(hit_comb),
-                .light(light_comb)
-            );
-        end
-    endgenerate
+    // Torus SDF
+    sdf_torus_comb torus (
+        .px(px),
+        .py(py),
+        .pz(pz),
+        .lx(light_x),
+        .ly(light_y),
+        .lz(light_z),
+        .hit(hit_torus),
+        .light(light_torus)
+    );
+    
+    // Sphere SDF
+    sdf_sphere_comb sphere (
+        .px(px),
+        .py(py),
+        .pz(pz),
+        .lx(light_x),
+        .ly(light_y),
+        .lz(light_z),
+        .hit(hit_sphere),
+        .light(light_sphere)
+    );
+    
+    // Select based on scene
+    wire hit_comb = (scene_select == 2'b01) ? hit_torus : hit_sphere;
+    wire signed [15:0] light_comb = (scene_select == 2'b01) ? light_torus : light_sphere;
     
     // Pipeline registers - delay by 3 cycles to match pixel timing
     reg hit_pipe1, hit_pipe2, hit_pipe3;

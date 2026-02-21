@@ -32,6 +32,15 @@ def main():
     ╚══════════════════════════════════════════════════════════╝
     """)
     
+    # Activate virtual environment if not already active
+    if not os.environ.get('VIRTUAL_ENV'):
+        venv_activate = Path(__file__).parent / 'venv' / 'bin' / 'activate'
+        if venv_activate.exists():
+            print("⚠ Virtual environment not activated")
+            print("Please run: source venv/bin/activate")
+            print("Then run this script again\n")
+            return 1
+    
     # Change to test directory
     test_dir = Path(__file__).parent / 'test'
     os.chdir(test_dir)
