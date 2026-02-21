@@ -1,0 +1,60 @@
+# Tiny Tapeout project information
+project:
+  title:        "Hardware Ray Marching VGA Renderer"
+  author:       "Faraaz"
+  discord:      ""
+  description:  "Real-time 3D ray marching with pipelined CORDIC on VGA display"
+  language:     "Verilog"
+  clock_hz:     65000000       # 65 MHz system clock
+
+  # How many tiles your design occupies? A single tile is about 167x108 uM.
+  tiles: "2x2"          # 2x2 tiles for ray marching logic
+
+  # Your top module name must start with "tt_um_". Make it unique by including your github username:
+  top_module:  "tt_um_raymarcher"
+
+  # List your project's source files here.
+  # Source files must be in ./src and you must list each source file separately, one per line.
+  # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
+  source_files:
+    - "tt_um_raymarcher.v"
+    - "vga_controller.v"
+    - "clock_divider.v"
+    - "cordic_comb.v"
+    - "sdf_comb.v"
+    - "renderer_pipelined.v"
+
+# The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
+pinout:
+  # Inputs
+  ui[0]: "Mode select bit 0"
+  ui[1]: "Mode select bit 1"
+  ui[2]: "Scene select bit 0"
+  ui[3]: "Scene select bit 1"
+  ui[4]: "Animation enable"
+  ui[5]: "Reserved"
+  ui[6]: "Reserved"
+  ui[7]: "Reserved"
+
+  # Outputs - VGA signals with 3-3-2 RGB encoding
+  uo[0]: "HSYNC"
+  uo[1]: "VSYNC"
+  uo[2]: "R0 (Red LSB)"
+  uo[3]: "R1 (Red)"
+  uo[4]: "R2 (Red MSB)"
+  uo[5]: "G0 (Green LSB)"
+  uo[6]: "G1 (Green)"
+  uo[7]: "G2 (Green MSB)"
+
+  # Bidirectional pins - Blue channel and debug
+  uio[0]: "B0 (Blue LSB)"
+  uio[1]: "B1 (Blue MSB)"
+  uio[2]: "Debug: Frame sync"
+  uio[3]: "Debug: Pixel valid"
+  uio[4]: "Reserved"
+  uio[5]: "Reserved"
+  uio[6]: "Reserved"
+  uio[7]: "Reserved"
+
+# Do not change!
+yaml_version: 6
