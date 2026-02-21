@@ -48,76 +48,29 @@ module renderer_pipelined (
     wire signed [15:0] ray_dy = screen_y >>> 2;
     wire signed [15:0] ray_dz = 16'h0100;  // 1.0 forward
     
-    // Simple ray marching - march forward from camera
-    // Start at camera, march along ray direction
-    wire signed [15:0] march_dist = 16'h0500;  // 5.0 units forward
-    wire signed [15:0] px = ray_ox + ((ray_dx * march_dist) >>> 8);
-    wire signed [15:0] py = ray_oy + ((ray_dy * march_dist) >>> 8);
-    wire signed [15:0] pz = ray_oz + ((ray_dz * march_dist) >>> 8);
+    // SIMPLIFIED FOR DEBUGGING: Just render based on screen distance from center
+    // This will show a circle if the logic works
     
-    // Combinatorial SDF evaluation
-    wire hit_torus, hit_sphere;
-    wire signed [15:0] light_torus, light_sphere;
+    // Distance from screen center (Manhattan distance)
+    wire [10:0] dx_abs = screen_x[15] ? -screen_x[10:0] : screen_x[10:0];
+    wire [10:0] dy_abs = screen_y[15] ? -screen_y[10:0] : screen_y[10:0];
+    wire [11:0] screen_dist = dx_abs + dy_abs;
     
-    // Torus SDF
-    sdf_torus_comb torus (
-        .px(px),
-        .py(py),
-        .pz(pz),
-        .lx(light_x),
-        .ly(light_y),
-        .lz(light_z),
-        .hit(hit_torus),
-        .light(light_torus)
-    );
+    // Simple hit test: inside circle of radius ~200 pixels
+    wire hit_comb = (screen_dist < 12'd200);
     
-    // Sphere SDF
-    sdf_sphere_comb sphere (
-        .px(px),
-        .py(py),
-        .pz(pz),
-        .lx(light_x),
-        .ly(light_y),
-        .lz(light_z),
-        .hit(hit_sphere),
-        .light(light_sphere)
-    );
-    
-    // Select based on scene
-    wire hit_comb = (scene_select == 2'b01) ? hit_torus : hit_sphere;
-    wire signed [15:0] light_comb = (scene_select == 2'b01) ? light_torus : light_sphere;
+    // Simple lighting: gradient based on distance
+    wire [5:0] light_6bit = hit_comb ? (6'd63 - screen_dist[7:2]) : 6'd0;
+    wire signed [15:0] light_comb = {10'b0, light_6bit};
     
     // Pipeline registers - delay by 3 cycles to match pixel timing
     reg hit_pipe1, hit_pipe2, hit_pipe3;
     reg [5:0] luma_pipe1, luma_pipe2, luma_pipe3;
     
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            hit_pipe1 <= 1'b0;
-            hit_pipe2 <= 1'b0;
-            hit_pipe3 <= 1'b0;
-            luma_pipe1 <= 6'b0;
-            luma_pipe2 <= 6'b0;
-            luma_pipe3 <= 6'b0;
-            hit <= 1'b0;
-            luma <= 6'b0;
-        end else begin
-            // Pipeline stage 1
-            hit_pipe1 <= hit_comb;
-            luma_pipe1 <= light_comb[13:8];  // Convert to 6-bit
-            
-            // Pipeline stage 2
-            hit_pipe2 <= hit_pipe1;
-            luma_pipe2 <= luma_pipe1;
-            
-            // Pipeline stage 3
-            hit_pipe3 <= hit_pipe2;
-            luma_pipe3 <= luma_pipe2;
-            
-            // Output (3 cycles delayed)
-            hit <= hit_pipe3;
-            luma <= luma_pipe3;
-        end
+    // NO PIPELINE - Just output directly for debugging
+    always @(*) begin
+        hit = hit_comb;
+        luma = light_6bit;
     end
 
 endmodule
